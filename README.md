@@ -18,6 +18,7 @@
 - PostgreSQL
 - Docker
 - React (фронтенд)
+- GitHub Actions CI/CD
 
 ## Как запустить проект
 
@@ -67,6 +68,25 @@ docker-compose exec backend python manage.py load_ingredients
 ```
 http://localhost/api/docs/
 ```
+
+## CI/CD с GitHub Actions
+
+Проект настроен на автоматическую сборку и публикацию образов Docker:
+
+1. Запускаются тесты Django и React
+2. Создаются и отправляются образы Docker на DockerHub:
+   - foodgram_backend
+   - foodgram_frontend
+   - foodgram_gateway
+3. Отправляется уведомление в Telegram о успешной публикации образов
+
+### Требуемые секреты GitHub
+
+Для работы CI/CD в репозитории необходимо добавить следующие секреты:
+- `DOCKER_USERNAME` - имя пользователя DockerHub
+- `DOCKER_PASSWORD` - пароль от DockerHub
+- `TELEGRAM_TO` - ID чата Telegram для уведомлений о сборке отзыва
+- `TELEGRAM_TOKEN` - токен бота Telegram
 
 ## Остановка проекта
 

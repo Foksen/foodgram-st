@@ -13,7 +13,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         possible_paths = [
             '/app/data/ingredients.csv',
-            os.path.join(os.path.dirname(settings.BASE_DIR), 'data', 'ingredients.csv')
+            os.path.join(os.path.dirname(settings.BASE_DIR),
+                         'data', 'ingredients.csv')
         ]
 
         file_path = None
