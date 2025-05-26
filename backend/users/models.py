@@ -1,12 +1,33 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+import re
+from django.core.exceptions import ValidationError
+
+
+def validate_username(value):
+    if not re.match(r'^[\w.@+-]+$', value):
+        raise ValidationError(
+            'Имя пользователя содержит недопустимые символы'
+        )
+    return value
 
 
 class User(AbstractUser):
     email = models.EmailField('Электронная почта', unique=True)
-    username = models.CharField('Ник', unique=True)
-    first_name = models.CharField('Имя')
-    last_name = models.CharField('Фамилия')
+    username = models.CharField(
+        'Ник',
+        unique=True,
+        max_length=150,
+        validators=[validate_username]
+    )
+    first_name = models.CharField('Имя', max_length=150)
+    last_name = models.CharField('Фамилия', max_length=150)
+    avatar = models.ImageField(
+        'Аватар',
+        upload_to='users/avatars/',
+        blank=True,
+        null=True
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']

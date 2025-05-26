@@ -7,7 +7,10 @@ from rest_framework.response import Response
 
 from .models import Subscription, User
 from .pagination import CustomPagination
-from .serializers import CustomUserSerializer, SubscriptionSerializer
+from .serializers import (
+    CustomUserSerializer, SetAvatarSerializer, SetAvatarResponseSerializer,
+    SubscriptionSerializer
+)
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -21,6 +24,36 @@ class UserViewSet(DjoserUserViewSet):
         if self.action in ('list', 'retrieve'):
             return [AllowAny()]
         return super().get_permissions()
+
+    @action(
+        detail=False,
+        methods=['put', 'delete'],
+        permission_classes=[IsAuthenticated],
+        url_path='me/avatar'
+    )
+    def avatar(self, request):
+        if request.method == 'PUT':
+            if not request.data:
+                return Response(
+                    {'errors': 'Отсутствуют данные в запросе'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            serializer = SetAvatarSerializer(
+                request.user,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(
+                SetAvatarResponseSerializer(request.user).data,
+                status=status.HTTP_200_OK
+            )
+
+        if request.method == 'DELETE':
+            request.user.avatar = None
+            request.user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
