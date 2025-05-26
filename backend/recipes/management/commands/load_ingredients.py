@@ -11,30 +11,40 @@ class Command(BaseCommand):
     help = 'Загружает ингредиенты'
 
     def handle(self, *args, **options):
-        file_path = os.path.join(
-            os.path.dirname(settings.BASE_DIR), 'data', 'ingredients.csv'
-        )
+        possible_paths = [
+            '/app/data/ingredients.csv',
+            os.path.join(os.path.dirname(settings.BASE_DIR), 'data', 'ingredients.csv')
+        ]
 
-        if not os.path.exists(file_path):
+        file_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                file_path = path
+                break
+
+        if file_path is None:
             self.stdout.write(
-                self.style.ERROR(f'Файл {file_path} не найден!')
+                self.style.ERROR('Файл ingredients.csv не найден!')
             )
             return
 
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 reader = csv.reader(file)
+                count = 0
                 for row in reader:
                     if len(row) != 2:
                         continue
                     name, measurement_unit = row
-                    Ingredient.objects.get_or_create(
+                    _, created = Ingredient.objects.get_or_create(
                         name=name,
                         measurement_unit=measurement_unit
                     )
+                    if created:
+                        count += 1
 
             self.stdout.write(
-                self.style.SUCCESS('Ингредиенты загружены')
+                self.style.SUCCESS(f'Загружено {count} ингредиентов')
             )
         except Exception as e:
             self.stdout.write(

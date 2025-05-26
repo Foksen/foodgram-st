@@ -19,9 +19,57 @@
 - Docker
 - React (фронтенд)
 
+## Как запустить проект
+
+### Подготовка
+
+1. Клонировать репозиторий
+2. Перейти в директорию с проектом
+
+### Добавление перменных окружения
+
+В директории `/infra` создайте файл `.env` (см. пример в файле `.env.example`)
+
+### Запуск с использованием Docker
+
+```bash
+cd infra
+
+docker-compose up -d
+
+docker-compose exec backend python manage.py migrate
+
+docker-compose exec backend python manage.py collectstatic
+```
+
+### Создание суперпользователя
+
+```bash
+docker-compose exec backend python manage.py createsuperuser
+```
+
+### Загрузка тестовых данных
+
+```bash
+docker-compose exec backend python manage.py load_ingredients
+```
+
+### Доступ к проекту
+
+После запуска сервисы доступны по адресам:
+- Фронтенд: http://localhost/
+- API: http://localhost/api/
+- Админ-панель: http://localhost/admin/
+
 ## Документация API
 
 Документация доступна после запуска по адресу:
 ```
 http://localhost/api/docs/
+```
+
+## Остановка проекта
+
+```bash
+docker-compose down
 ```

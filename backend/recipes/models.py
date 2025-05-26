@@ -1,6 +1,7 @@
+import uuid
+
 from django.core.validators import MinValueValidator
 from django.db import models
-import uuid
 from django.utils.text import slugify
 
 from users.models import User
