@@ -62,13 +62,6 @@ docker-compose exec backend python manage.py load_ingredients
 - API: http://localhost/api/
 - Админ-панель: http://localhost/admin/
 
-## Документация API
-
-Документация доступна после запуска по адресу:
-```
-http://localhost/api/docs/
-```
-
 ## CI/CD с GitHub Actions
 
 Проект настроен на автоматическую сборку и публикацию образов Docker:
