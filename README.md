@@ -55,6 +55,12 @@ docker-compose exec backend python manage.py createsuperuser
 docker-compose exec backend python manage.py load_ingredients
 ```
 
+### Остановка проекта
+
+```bash
+docker-compose down
+```
+
 ### Доступ к проекту
 
 После запуска сервисы доступны по адресам:
@@ -80,9 +86,3 @@ docker-compose exec backend python manage.py load_ingredients
 - `DOCKER_PASSWORD` - пароль от DockerHub
 - `TELEGRAM_TO` - ID чата Telegram для уведомлений о сборке отзыва
 - `TELEGRAM_TOKEN` - токен бота Telegram
-
-## Остановка проекта
-
-```bash
-docker-compose down
-```
