@@ -178,13 +178,11 @@ DJOSER = {
 CORS_ALLOW_CREDENTIALS = True
 CORS_URLS_REGEX = r'^/api/.*$'
 
-# Get CORS allowed origins from environment or use defaults
 CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS',
     'http://localhost:3000,http://localhost,http://127.0.0.1:3000,http://frontend:3000'
 ).split(',')
 
-# Additional CORS settings
 CORS_ALLOW_METHODS = [
     'GET',
     'POST',
@@ -193,3 +191,5 @@ CORS_ALLOW_METHODS = [
     'DELETE',
     'OPTIONS',
 ]
+
+HOST_URL = os.getenv('HOST_URL', 'localhost')

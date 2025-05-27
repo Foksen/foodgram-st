@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.conf import settings
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -58,12 +59,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         try:
             pk = kwargs.get('pk')
-            try:
-                int(pk)
-                instance = get_object_or_404(Recipe, pk=pk)
-            except (ValueError, TypeError):
-                instance = get_object_or_404(Recipe, short_link=pk)
-
+            instance = get_object_or_404(Recipe, pk=pk)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except Exception as e:
@@ -247,4 +243,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def get_link(self, request, pk=None):
         recipe = self.get_object()
-        return Response({'short-link': recipe.short_link})
+        host = settings.HOST_URL
+        short_link = f"{host}/s/{recipe.id}"
+        return Response({'short-link': short_link})

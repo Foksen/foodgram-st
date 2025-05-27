@@ -76,25 +76,11 @@ class Recipe(models.Model):
         )]
     )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
-    short_link = models.SlugField(
-        'Короткая ссылка',
-        max_length=64,
-        unique=True,
-        blank=True,
-        null=True
-    )
 
     class Meta:
         ordering = ['-pub_date']
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-
-    def save(self, *args, **kwargs):
-        if not self.short_link:
-            self.short_link = slugify(
-                f"{self.name[:20]}-{uuid.uuid4().hex[:8]}"
-            )
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
