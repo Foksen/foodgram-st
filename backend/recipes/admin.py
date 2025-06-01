@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 
@@ -8,28 +9,117 @@ from .models import (
 )
 
 
+class HasRecipesFilter(admin.SimpleListFilter):
+    title = 'есть рецепты'
+    parameter_name = 'has_recipes'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.annotate(recipe_count=Count('recipes')).filter(recipe_count__gt=0)
+        if self.value() == 'no':
+            return queryset.annotate(recipe_count=Count('recipes')).filter(recipe_count=0)
+        return queryset
+
+
+class HasSubscriptionsFilter(admin.SimpleListFilter):
+    title = 'есть подписки'
+    parameter_name = 'has_subscriptions'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.annotate(subscr_count=Count('author')).filter(subscr_count__gt=0)
+        if self.value() == 'no':
+            return queryset.annotate(subscr_count=Count('author')).filter(subscr_count=0)
+        return queryset
+
+
+class HasSubscribersFilter(admin.SimpleListFilter):
+    title = 'есть подписчики'
+    parameter_name = 'has_subscribers'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Да'),
+            ('no', 'Нет'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.annotate(subs_count=Count('subscribers')).filter(subs_count__gt=0)
+        if self.value() == 'no':
+            return queryset.annotate(subs_count=Count('subscribers')).filter(subs_count=0)
+        return queryset
+
+
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'username', 'email', 'first_name', 'last_name')
-    list_filter = ('username', 'email')
+class UserAdmin(BaseUserAdmin):
+    list_display = ('id', 'username', 'get_full_name', 'email', 'get_avatar', 
+                   'get_recipe_count', 'get_subscription_count', 'get_subscriber_count')
+    list_filter = (HasRecipesFilter, HasSubscriptionsFilter, HasSubscribersFilter, 
+                  'is_staff', 'is_superuser', 'is_active')
     search_fields = ('username', 'email', 'first_name', 'last_name')
-    list_per_page = 20
     ordering = ('username',)
+    list_per_page = 20
+    
     fieldsets = (
-        ('Основное', {
-            'fields': ('username', 'email', 'password')
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'avatar')}),
+        ('Permissions', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
-        ('Имя и фамилия', {
-            'fields': ('first_name', 'last_name')
-        }),
-        ('Права доступа', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups')
-        }),
-        ('Даты', {
-            'fields': ('last_login', 'date_joined')
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'first_name', 'last_name', 'password1', 'password2'),
         }),
     )
-    readonly_fields = ('last_login', 'date_joined')
+    
+    readonly_fields = ['get_avatar']
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.annotate(
+            recipe_count=Count('recipes', distinct=True),
+            subscription_count=Count('author', distinct=True),
+            subscriber_count=Count('subscribers', distinct=True)
+        )
+    
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+    get_full_name.short_description = 'ФИО'
+    
+    @mark_safe
+    def get_avatar(self, obj):
+        if obj.avatar:
+            return f'<img src="{obj.avatar.url}" width="80" height="80" />'
+        return 'Нет аватара'
+    get_avatar.short_description = 'Аватар'
+    
+    def get_recipe_count(self, obj):
+        return obj.recipe_count
+    get_recipe_count.short_description = 'Количество рецептов'
+    
+    def get_subscription_count(self, obj):
+        return obj.subscription_count
+    get_subscription_count.short_description = 'Подписок'
+    
+    def get_subscriber_count(self, obj):
+        return obj.subscriber_count
+    get_subscriber_count.short_description = 'Подписчиков'
 
 
 @admin.register(Subscription)

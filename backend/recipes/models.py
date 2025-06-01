@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MinValueValidator
 from django.db import models
 import re
@@ -18,12 +19,20 @@ class User(AbstractUser):
     email = models.EmailField('Электронная почта', unique=True)
     username = models.CharField(
         'Ник',
-        unique=True,
         max_length=150,
-        validators=[validate_username]
+        unique=True,
+        validators=[UnicodeUsernameValidator()],
     )
-    first_name = models.CharField('Имя', max_length=150)
-    last_name = models.CharField('Фамилия', max_length=150)
+    first_name = models.CharField(
+        'Имя',
+        max_length=150,
+        blank=False,
+    )
+    last_name = models.CharField(
+        'Фамилия',
+        max_length=150,
+        blank=False,
+    )
     avatar = models.ImageField(
         'Аватар',
         upload_to='users/avatars/',
@@ -46,16 +55,16 @@ class User(AbstractUser):
 
 class Subscription(models.Model):
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        User,
         verbose_name='Автор',
         on_delete=models.CASCADE,
-        related_name='subscribers',
+        related_name='author',
     )
     subscriber = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        User,
         verbose_name='Подписчик',
         on_delete=models.CASCADE,
-        related_name='subscriptions',
+        related_name='subscribers',
     )
 
     class Meta:

@@ -3,60 +3,13 @@ import base64
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from djoser.serializers import UserCreateSerializer, UserSerializer
+from djoser.serializers import UserSerializer
+from drf_extra_fields.fields import Base64ImageField
 
 from .models import (
     Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, User,
     Subscription
 )
-
-
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'temp.{ext}')
-        return super().to_internal_value(data)
-
-
-class CustomUserCreateSerializer(UserCreateSerializer):
-    email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all())]
-    )
-    username = serializers.CharField(
-        validators=[UniqueValidator(queryset=User.objects.all())],
-        max_length=150
-    )
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
-
-    class Meta:
-        model = User
-        fields = (
-            'email',
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            'password'
-        )
-        extra_kwargs = {
-            'first_name': {'required': True},
-            'last_name': {'required': True},
-            'password': {'write_only': True}
-        }
-
-    def validate_username(self, value):
-        if len(value) > 150:
-            raise serializers.ValidationError(
-                'Имя пользователя не должно превышать 150 символов'
-            )
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" не разрешено'
-            )
-        return value
 
 
 class CustomUserSerializer(UserSerializer):
@@ -100,12 +53,6 @@ class CustomUserSerializer(UserSerializer):
 class SetAvatarSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField()
 
-    class Meta:
-        model = User
-        fields = ('avatar',)
-
-
-class SetAvatarResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('avatar',)
@@ -264,6 +211,10 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         if not attrs.get('cooking_time'):
             raise serializers.ValidationError(
                 {'cooking_time': 'Время приготовления обязательно'}
+            )
+        if 'image' not in attrs or not attrs.get('image'):
+            raise serializers.ValidationError(
+                {'image': 'Изображение рецепта обязательно'}
             )
         return attrs
 

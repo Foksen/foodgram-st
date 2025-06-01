@@ -160,7 +160,6 @@ DJOSER = {
     'HIDE_USERS': False,
     'SERIALIZERS': {
         'user': 'recipes.serializers.CustomUserSerializer',
-        'user_create': 'recipes.serializers.CustomUserCreateSerializer',
         'current_user': 'recipes.serializers.CustomUserSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer',
     },

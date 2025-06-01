@@ -16,19 +16,19 @@ from .models import (
     Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart,
     Subscription, User
 )
-from .pagination import CustomPagination, RecipePagination
+from .pagination import UserPagination, RecipePagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     CustomUserSerializer, IngredientSerializer, RecipeCreateUpdateSerializer,
     RecipeReadSerializer, RecipeShortSerializer, SetAvatarSerializer,
-    SetAvatarResponseSerializer, SubscriptionSerializer
+    SubscriptionSerializer
 )
 
 
 class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = CustomUserSerializer
-    pagination_class = CustomPagination
+    pagination_class = UserPagination
 
     def get_permissions(self):
         if self.action == 'me':
@@ -58,7 +58,7 @@ class UserViewSet(DjoserUserViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(
-                SetAvatarResponseSerializer(request.user).data,
+                serializer.data,
                 status=status.HTTP_200_OK
             )
 
