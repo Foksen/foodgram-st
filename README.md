@@ -25,7 +25,22 @@
 ### Подготовка
 
 1. Клонировать репозиторий
+
+```bash
+cd ~
+
+mkdir dev
+
+cd dev
+
+git clone https://github.com/Foksen/foodgram-st.git
+```
+
 2. Перейти в директорию с проектом
+
+```bash
+cd foodgram-st
+```
 
 ### Добавление перменных окружения
 
@@ -64,9 +79,9 @@ docker-compose down
 ### Доступ к проекту
 
 После запуска сервисы доступны по адресам:
-- Фронтенд: http://localhost/
-- API: http://localhost/api/
-- Админ-панель: http://localhost/admin/
+- [Фронтенд](http://localhost/)
+- [API](http//localhost/api/)
+- [Админ-панель](http://localhost/admin/)
 
 ## CI/CD с GitHub Actions
 
