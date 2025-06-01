@@ -8,7 +8,7 @@ from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
-    help = 'Загружает ингредиенты'
+    help = 'Загружает продукты'
 
     def handle(self, *args, **options):
         possible_paths = [
@@ -45,9 +45,9 @@ class Command(BaseCommand):
                         count += 1
 
             self.stdout.write(
-                self.style.SUCCESS(f'Загружено {count} ингредиентов')
+                self.style.SUCCESS(f'Загружено {count} продуктов')
             )
         except Exception as e:
             self.stdout.write(
-                self.style.ERROR(f'Ингредиенты не удалось загрузить: {e}')
+                self.style.ERROR(f'Продукты не удалось загрузить: {e}')
             )

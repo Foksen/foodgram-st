@@ -15,8 +15,8 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Ингредиент'
-        verbose_name_plural = 'Ингредиенты'
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
         ordering = ['name']
         constraints = [
             models.UniqueConstraint(
@@ -45,7 +45,7 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         through='IngredientRecipe',
-        verbose_name='Ингредиенты',
+        verbose_name='Продукты',
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
@@ -68,7 +68,7 @@ class IngredientRecipe(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
-        verbose_name='Ингредиент',
+        verbose_name='Продукт',
     )
     recipe = models.ForeignKey(
         Recipe,
@@ -79,13 +79,13 @@ class IngredientRecipe(models.Model):
     amount = models.PositiveSmallIntegerField(
         'Количество',
         validators=[MinValueValidator(
-            1, message='Количество ингредиента должно быть не менее 1!'
+            1, message='Количество продукта должно быть не менее 1!'
         )]
     )
 
     class Meta:
-        verbose_name = 'Ингредиент в рецепте'
-        verbose_name_plural = 'Ингредиенты в рецептах'
+        verbose_name = 'Продукт в рецепте'
+        verbose_name_plural = 'Продукты в рецептах'
         constraints = [
             models.UniqueConstraint(
                 fields=['ingredient', 'recipe'],

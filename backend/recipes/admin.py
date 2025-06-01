@@ -73,8 +73,8 @@ class RecipeAdmin(admin.ModelAdmin):
                 f'{item.ingredient.name} - {item.amount} '
                 f'{item.ingredient.measurement_unit}'
             )
-        return '<br>'.join(result) if result else 'Нет ингредиентов'
-    get_products.short_description = 'Ингредиенты'
+        return '<br>'.join(result) if result else 'Нет продуктов'
+    get_products.short_description = 'Продукты'
 
 
 class UserRecipeAdmin(admin.ModelAdmin):

@@ -140,19 +140,19 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def validate_ingredients(self, value):
         if not value:
             raise serializers.ValidationError(
-                'Минимум один ингредиент!'
+                'Минимум один продукт!'
             )
 
         ingredient_ids = [item['id'].id for item in value]
         if len(ingredient_ids) != len(set(ingredient_ids)):
             raise serializers.ValidationError(
-                'Ингредиенты повторяются!'
+                'Продукты повторяются!'
             )
 
         for item in value:
             if int(item['amount']) < 1:
                 raise serializers.ValidationError(
-                    'Количество ингредиента должно быть не менее 1!'
+                    'Количество продукта должно быть не менее 1!'
                 )
 
         return value
