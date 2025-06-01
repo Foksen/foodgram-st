@@ -3,7 +3,7 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 
 from .models import (
-    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
+    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart
 )
 
 
@@ -50,7 +50,7 @@ class IngredientRecipeInline(admin.TabularInline):
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'cooking_time', 'author', 'favorite_count', 'get_products', 'get_image')
     search_fields = ('name', 'author__username')
-    list_filter = ('author', 'tags')
+    list_filter = ('author',)
     inlines = (IngredientRecipeInline,)
 
     @admin.display(description='В избранном')

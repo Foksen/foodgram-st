@@ -29,20 +29,6 @@ class Ingredient(models.Model):
         return f'{self.name}, {self.measurement_unit}'
 
 
-class Tag(models.Model):
-    name = models.CharField('Название', max_length=64, unique=True)
-    color = models.CharField('Цветовой HEX-код', max_length=7, unique=True)
-    slug = models.SlugField('Слаг', max_length=64, unique=True)
-
-    class Meta:
-        verbose_name = 'Тег'
-        verbose_name_plural = 'Теги'
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-
 class Recipe(models.Model):
     author = models.ForeignKey(
         User,
@@ -60,11 +46,6 @@ class Recipe(models.Model):
         Ingredient,
         through='IngredientRecipe',
         verbose_name='Ингредиенты',
-    )
-    tags = models.ManyToManyField(
-        Tag,
-        verbose_name='Теги',
-        related_name='recipes'
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',

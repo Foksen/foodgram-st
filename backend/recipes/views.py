@@ -12,13 +12,13 @@ from rest_framework.response import Response
 
 from .filters import IngredientFilter, RecipeFilter
 from .models import (
-    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
+    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart
 )
 from .pagination import RecipePagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     IngredientSerializer, RecipeCreateUpdateSerializer,
-    RecipeReadSerializer, RecipeShortSerializer, TagSerializer
+    RecipeReadSerializer, RecipeShortSerializer
 )
 
 
@@ -27,13 +27,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
-    permission_classes = (AllowAny,)
-    pagination_class = None
-
-
-class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
     permission_classes = (AllowAny,)
     pagination_class = None
 

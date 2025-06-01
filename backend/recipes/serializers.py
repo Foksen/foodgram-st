@@ -6,7 +6,7 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from users.serializers import CustomUserSerializer
 from .models import (
-    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
+    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart
 )
 
 
@@ -17,12 +17,6 @@ class Base64ImageField(serializers.ImageField):
             ext = format.split('/')[-1]
             data = ContentFile(base64.b64decode(imgstr), name=f'temp.{ext}')
         return super().to_internal_value(data)
-
-
-class TagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ('id', 'name', 'color', 'slug')
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -118,18 +112,13 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     ingredients = IngredientCreateSerializer(many=True)
-    tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(),
-        many=True,
-        required=False
-    )
     image = Base64ImageField(required=True)
     cooking_time = serializers.IntegerField(min_value=1)
 
     class Meta:
         model = Recipe
         fields = (
-            'id', 'ingredients', 'tags', 'image',
+            'id', 'ingredients', 'image',
             'name', 'text', 'cooking_time'
         )
 
@@ -168,16 +157,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         return value
 
-    def validate_tags(self, value):
-        if not value:
-            return value
-
-        if len(value) != len(set(value)):
-            raise serializers.ValidationError(
-                'Теги повторяются!'
-            )
-        return value
-
     def create_ingredients(self, ingredients, recipe):
         create_ingredients = [
             IngredientRecipe(
@@ -192,11 +171,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         author = self.context.get('request').user
         ingredients = validated_data.pop('ingredients', [])
-        tags = validated_data.pop('tags', [])
         recipe = Recipe.objects.create(author=author, **validated_data)
-
-        if tags:
-            recipe.tags.set(tags)
 
         if ingredients:
             self.create_ingredients(ingredients, recipe)
@@ -208,9 +183,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             ingredients = validated_data.pop('ingredients')
             instance.ingredients.clear()
             self.create_ingredients(ingredients, instance)
-
-        if 'tags' in validated_data:
-            instance.tags.set(validated_data.pop('tags'))
 
         return super().update(instance, validated_data)
 
