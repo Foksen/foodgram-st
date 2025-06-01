@@ -25,3 +25,13 @@ class RecipePagination(PageNumberPagination):
             'previous': self.get_previous_link(),
             'results': data
         })
+
+
+class CustomPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'limit'
+    max_page_size = 100
+
+
+class LimitPagination(PageNumberPagination):
+    page_size_query_param = 'limit'

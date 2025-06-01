@@ -3,8 +3,41 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 
 from .models import (
-    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart
+    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart,
+    User, Subscription
 )
+
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('id', 'username', 'email', 'first_name', 'last_name')
+    list_filter = ('username', 'email')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_per_page = 20
+    ordering = ('username',)
+    fieldsets = (
+        ('Основное', {
+            'fields': ('username', 'email', 'password')
+        }),
+        ('Имя и фамилия', {
+            'fields': ('first_name', 'last_name')
+        }),
+        ('Права доступа', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups')
+        }),
+        ('Даты', {
+            'fields': ('last_login', 'date_joined')
+        }),
+    )
+    readonly_fields = ('last_login', 'date_joined')
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'subscriber', 'author')
+    search_fields = ('subscriber__username', 'author__username')
+    list_filter = ('author', 'subscriber')
+    list_per_page = 20
 
 
 class IsInRecipesFilter(admin.SimpleListFilter):
@@ -33,7 +66,8 @@ class IngredientAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset.annotate(recipe_count=Count('ingredient_recipes__recipe', distinct=True))
+        return queryset.annotate(recipe_count=Count(
+            'ingredient_recipes__recipe', distinct=True))
 
     def recipe_count(self, ingredient):
         return ingredient.recipe_count
@@ -48,7 +82,8 @@ class IngredientRecipeInline(admin.TabularInline):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'cooking_time', 'author', 'favorite_count', 'get_products', 'get_image')
+    list_display = ('id', 'name', 'cooking_time', 'author', 'favorite_count',
+                    'get_products', 'get_image')
     search_fields = ('name', 'author__username')
     list_filter = ('author',)
     inlines = (IngredientRecipeInline,)
@@ -56,14 +91,14 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='В избранном')
     def favorite_count(self, recipe):
         return recipe.favorite_recipes.count()
-    
+
     @mark_safe
     def get_image(self, recipe):
         if recipe.image:
             return f'<img src="{recipe.image.url}" width="80" height="60">'
         return 'Нет изображения'
     get_image.short_description = 'Изображение'
-    
+
     @mark_safe
     def get_products(self, recipe):
         ingredients = recipe.recipe_ingredients.select_related('ingredient')
