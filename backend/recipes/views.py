@@ -8,7 +8,7 @@ from .models import Recipe
 
 
 class RecipeViewSet(viewsets.GenericViewSet):
-    queryset = Recipe.objects.all()
+    all_recipes = Recipe.objects.all()
 
     @action(
         detail=True,
