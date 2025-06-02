@@ -1,6 +1,7 @@
 import json
 import os
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from recipes.models import Ingredient
 
@@ -18,6 +19,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             file_path = options.get('path') or '/app/data/ingredients.json'
+            batch_size = 1000
 
             if not os.path.exists(file_path):
                 self.stderr.write(self.style.ERROR(
@@ -27,30 +29,56 @@ class Command(BaseCommand):
             with open(file_path, 'r', encoding='utf-8') as file:
                 ingredients_data = json.load(file)
 
-            ingredients_to_create = []
-            existing_ingredients = set(
+            existing_names_units = set(
                 Ingredient.objects.values_list('name', 'measurement_unit')
             )
+            
+            total_ingredients = len(ingredients_data)
+            created_count = 0
+            skipped_count = 0
+            batch_count = 0
+            
+            with transaction.atomic():
+                ingredient_batch = []
+                
+                for ingredient in ingredients_data:
+                    name = ingredient.get('name')
+                    measurement_unit = ingredient.get('measurement_unit')
 
-            for ingredient in ingredients_data:
-                name = ingredient.get('name')
-                measurement_unit = ingredient.get('measurement_unit')
+                    if not name or not measurement_unit:
+                        skipped_count += 1
+                        continue
 
-                if not name or not measurement_unit:
-                    continue
-
-                if (name, measurement_unit) not in existing_ingredients:
-                    ingredients_to_create.append(
-                        Ingredient(
-                            name=name,
-                            measurement_unit=measurement_unit
+                    if (name, measurement_unit) not in existing_names_units:
+                        ingredient_batch.append(
+                            Ingredient(
+                                name=name,
+                                measurement_unit=measurement_unit
+                            )
                         )
-                    )
+                        created_count += 1
+                    else:
+                        skipped_count += 1
+                        
+                    if len(ingredient_batch) >= batch_size:
+                        Ingredient.objects.bulk_create(ingredient_batch)
+                        batch_count += 1
+                        self.stdout.write(
+                            f'Обработано {batch_count} батчей, '
+                            f'всего {batch_count * batch_size} ингредиентов'
+                        )
+                        ingredient_batch = []
+                
+                if ingredient_batch:
+                    Ingredient.objects.bulk_create(ingredient_batch)
+                    batch_count += 1
 
-            if ingredients_to_create:
-                Ingredient.objects.bulk_create(ingredients_to_create)
-
-            self.stdout.write(self.style.SUCCESS('Продукты успешно загружены'))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'Загрузка завершена: '
+                    f'создано {created_count}, пропущено {skipped_count}'
+                )
+            )
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(
