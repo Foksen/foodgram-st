@@ -4,6 +4,7 @@ import tempfile
 from django.db.models import Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import serializers, status, viewsets
@@ -197,7 +198,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeCreateUpdateSerializer
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", 'get_link'):
             return [AllowAny()]
         return [IsAuthenticated(), IsAuthorOrReadOnly()]
 
@@ -475,3 +476,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 filename=filename,
                 content_type="text/plain; charset=UTF-8",
             )
+
+    @action(
+        detail=True,
+        methods=['get'],
+        url_path='get-link',
+    )
+    def get_link(self, request, pk=None):
+        if not Recipe.objects.filter(pk=pk).exists():
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        short_link = request.build_absolute_uri(
+            reverse("recipe-short-link-redirect", args=[pk])
+        )
+        return Response({"short-link": short_link})
