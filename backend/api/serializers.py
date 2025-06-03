@@ -57,7 +57,9 @@ class RecipeShortSerializer(serializers.ModelSerializer):
 
 class SubscribedAuthorSerializer(CustomUserSerializer):
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.IntegerField(source='recipes.count', read_only=True)
+    recipes_count = serializers.IntegerField(
+        source="recipes.count", read_only=True
+    )
 
     class Meta:
         model = User
@@ -77,15 +79,17 @@ class SubscribedAuthorSerializer(CustomUserSerializer):
     def get_recipes(self, author):
         request = self.context.get("request")
         recipes = author.recipes.all()
-        
+
         recipes_limit = 1000
         try:
-            limit_param = request.query_params.get("recipes_limit") or self.context.get("recipes_limit")
+            limit_param = request.query_params.get(
+                "recipes_limit"
+            ) or self.context.get("recipes_limit")
             if limit_param:
                 recipes_limit = int(limit_param)
         except (ValueError, TypeError, AttributeError):
             pass
-            
+
         recipes = recipes[:recipes_limit]
         return RecipeShortSerializer(
             recipes, many=True, context={"request": request}
@@ -147,29 +151,56 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     def get_is_favorited(self, recipe):
         request = self.context.get("request")
         return bool(
-            request and 
-            not request.user.is_anonymous and 
-            Favorite.objects.filter(user=request.user, recipe=recipe).exists()
+            request
+            and not request.user.is_anonymous
+            and Favorite.objects.filter(
+                user=request.user, recipe=recipe
+            ).exists()
         )
 
     def get_is_in_shopping_cart(self, recipe):
         request = self.context.get("request")
         return bool(
-            request and 
-            not request.user.is_anonymous and 
-            ShoppingCart.objects.filter(user=request.user, recipe=recipe).exists()
+            request
+            and not request.user.is_anonymous
+            and ShoppingCart.objects.filter(
+                user=request.user, recipe=recipe
+            ).exists()
         )
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
-    ingredients = IngredientCreateSerializer(many=True)
+    ingredients = IngredientCreateSerializer(many=True, required=True)
     cooking_time = serializers.IntegerField(min_value=1)
     image = Base64ImageField(required=True)
 
     class Meta:
         model = Recipe
         fields = ("id", "ingredients", "image", "name", "text", "cooking_time")
-        
+
+    # Для тестов, без него не получается пройти
+    def validate_ingredients(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Должен быть указан минимум один ингредиент"
+            )
+
+        ingredient_ids = [ingredient["id"].id for ingredient in value]
+        if len(set(ingredient_ids)) != len(ingredient_ids):
+            raise serializers.ValidationError(
+                "Ингредиенты не должны повторяться"
+            )
+
+        return value
+
+    # Required не работает на PATCH (тест), поэтому проверяю вручную
+    def validate(self, data):
+        if "ingredients" not in data:
+            raise serializers.ValidationError(
+                {"ingredients": "Должен быть указан минимум один ингредиент"}
+            )
+        return data
+
     def validate_image(self, value):
         if not value:
             raise serializers.ValidationError("Image cannot be empty.")
@@ -197,9 +228,11 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients = validated_data.pop("ingredients")
-        instance.ingredients.clear()
-        self.create_ingredients(ingredients, instance)
+        ingredients = validated_data.pop("ingredients", None)
+
+        if ingredients is not None:
+            instance.ingredients.clear()
+            self.create_ingredients(ingredients, instance)
 
         return super().update(instance, validated_data)
 

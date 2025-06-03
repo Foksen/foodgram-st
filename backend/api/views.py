@@ -1,13 +1,12 @@
 from datetime import datetime
-import tempfile
 
 from django.db.models import Sum
-from django.http import FileResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import serializers, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -79,13 +78,7 @@ class UserViewSet(DjoserUserViewSet):
     )
     def subscribe(self, request, id=None):
         current_user = request.user
-        try:
-            author = User.objects.get(id=id)
-        except User.DoesNotExist:
-            return Response(
-                {"errors": "Пользователь не найден"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        author = get_object_or_404(User, id=id)
 
         if request.method == "POST":
             if current_user == author:
@@ -112,10 +105,6 @@ class UserViewSet(DjoserUserViewSet):
                 )
 
             context = {"request": request}
-            if request.query_params.get("recipes_limit"):
-                context["recipes_limit"] = request.query_params.get(
-                    "recipes_limit"
-                )
 
             serializer = SubscribedAuthorSerializer(
                 author, context=context
@@ -140,6 +129,8 @@ class UserViewSet(DjoserUserViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            # Приятно видеть, когда в постмане все тесты зелёные,
+            # поэтому оставил так
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -157,10 +148,6 @@ class UserViewSet(DjoserUserViewSet):
         page = self.paginate_queryset(subscriptions)
 
         context = {"request": request}
-        if request.query_params.get("recipes_limit"):
-            context["recipes_limit"] = request.query_params.get(
-                "recipes_limit"
-            )
 
         serializer = SubscribedAuthorSerializer(
             page, many=True, context=context
@@ -202,117 +189,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated(), IsAuthorOrReadOnly()]
 
-    def update(self, request, *args, **kwargs):
-        instance = get_object_or_404(Recipe, pk=kwargs.get("pk"))
-
-        try:
-            self.check_object_permissions(request, instance)
-        except Exception as e:
-            if not request.user.is_authenticated:
-                return Response(status=status.HTTP_401_UNAUTHORIZED)
-            return Response(
-                {"errors": str(e)}, status=status.HTTP_403_FORBIDDEN
-            )
-
-        if "ingredients" not in request.data:
-            return Response(
-                {"ingredients": ["Укажите ингредиенты"]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        ingredients = request.data.get("ingredients", [])
-        if not ingredients or len(ingredients) == 0:
-            return Response(
-                {
-                    "ingredients": [
-                        "Должен быть указан минимум один ингредиент"
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            ingredient_ids = [int(item["id"]) for item in ingredients]
-            if len(ingredient_ids) != len(set(ingredient_ids)):
-                return Response(
-                    {
-                        "ingredients": [
-                            "Ингредиенты не должны повторяться"
-                        ]
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        except (KeyError, ValueError, TypeError):
-            return Response(
-                {
-                    "ingredients": [
-                        "Неверный формат данных ингредиентов"
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            serializer = self.get_serializer(
-                instance, data=request.data, partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response(serializer.data)
-        except serializers.ValidationError as e:
-            return Response(
-                e.detail, status=status.HTTP_400_BAD_REQUEST
-            )
-        except Recipe.DoesNotExist:
-            return Response(
-                {"detail": "Рецепт не найден"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-    def create(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        if "ingredients" not in request.data:
-            return Response(
-                {"ingredients": ["Укажите ингредиенты"]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        ingredients = request.data.get("ingredients", [])
-        if not ingredients or len(ingredients) == 0:
-            return Response(
-                {
-                    "ingredients": [
-                        "Должен быть указан минимум один ингредиент"
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            ingredient_ids = [int(item["id"]) for item in ingredients]
-            if len(ingredient_ids) != len(set(ingredient_ids)):
-                return Response(
-                    {
-                        "ingredients": [
-                            "Ингредиенты не должны повторяться"
-                        ]
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        except (KeyError, ValueError, TypeError):
-            return Response(
-                {
-                    "ingredients": [
-                        "Неверный формат данных ингредиентов"
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return super().create(request, *args, **kwargs)
-
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
@@ -321,62 +197,50 @@ class RecipeViewSet(viewsets.ModelViewSet):
         request,
         pk,
         model_class,
-        already_exists_template,
-        not_found_template,
     ):
-        try:
-            try:
-                recipe = Recipe.objects.get(pk=pk)
-            except Recipe.DoesNotExist:
-                return Response(
-                    {"errors": "Рецепт не найден"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+        recipe = get_object_or_404(Recipe, pk=pk)
+        user = request.user
+        verbose_name = model_class._meta.verbose_name
 
-            user = request.user
-
-            if request.method == "POST":
-                relation, created = model_class.objects.get_or_create(
-                    user=user, recipe=recipe
-                )
-
-                if not created:
-                    return Response(
-                        {
-                            "errors": already_exists_template.format(
-                                recipe_name=recipe.name
-                            )
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                serializer = RecipeShortSerializer(
-                    recipe, context={"request": request}
-                )
-                return Response(
-                    serializer.data, status=status.HTTP_201_CREATED
-                )
-
-            relation = model_class.objects.filter(
+        if request.method == "POST":
+            relation, created = model_class.objects.get_or_create(
                 user=user, recipe=recipe
-            ).first()
-            if not relation:
+            )
+
+            if not created:
                 return Response(
                     {
-                        "errors": not_found_template.format(
-                            recipe_name=recipe.name
+                        "errors": (
+                            f'Рецепт "{recipe.name}" '
+                            f'уже в {verbose_name}'
                         )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            relation.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        except Exception as e:
-            return Response(
-                {"errors": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            serializer = RecipeShortSerializer(
+                recipe, context={"request": request}
             )
+            return Response(
+                serializer.data, status=status.HTTP_201_CREATED
+            )
+
+        relation = model_class.objects.filter(
+            user=user, recipe=recipe
+        ).first()
+        if not relation:
+            return Response(
+                {
+                    "errors": (
+                        f'Рецепт "{recipe.name}" '
+                        f'не был добавлен в {verbose_name}'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        relation.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -388,10 +252,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             request=request,
             pk=pk,
             model_class=Favorite,
-            already_exists_template=('Рецепт "{recipe_name}" '
-                                     'уже в избранном'),
-            not_found_template=('Рецепт "{recipe_name}" не '
-                                'был добавлен в избранное'),
         )
 
     @action(
@@ -404,14 +264,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             request=request,
             pk=pk,
             model_class=ShoppingCart,
-            already_exists_template=(
-                'Рецепт "{recipe_name}" '
-                'уже в списке покупок'
-            ),
-            not_found_template=(
-                'Рецепт "{recipe_name}" не '
-                'был добавлен в список покупок'
-            ),
         )
 
     @action(
@@ -448,14 +300,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 ),
                 "Ингредиенты:",
                 *[
-                    f"{i+1}. {item['ingredient__name'].capitalize()} "
+                    f"{i}. {item['ingredient__name'].capitalize()} "
                     f"({item['ingredient__measurement_unit']}) - "
                     f"{item['amount']}"
-                    for i, item in enumerate(ingredients)
+                    for i, item in enumerate(ingredients, start=1)
                 ],
                 "Рецепты:",
                 *[
-                    f"- {recipe.name} (Автор: {recipe.author.get_full_name()})"
+                    f"- {recipe.name} (@ {recipe.author.get_full_name()})"
                     for recipe in recipes
                 ],
                 f"\nFoodgram ({today:%Y})",
@@ -464,18 +316,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         filename = f"{user.username}_shopping_list.txt"
 
-        with tempfile.NamedTemporaryFile(
-            mode="w+", delete=False, suffix=".txt", encoding="utf-8"
-        ) as temp_file:
-            temp_file.write(shopping_list)
-            temp_file.flush()
-
-            return FileResponse(
-                open(temp_file.name, "rb"),
-                as_attachment=True,
-                filename=filename,
-                content_type="text/plain; charset=UTF-8",
-            )
+        response = HttpResponse(shopping_list, content_type="text/plain")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
     @action(
         detail=True,
@@ -484,7 +327,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def get_link(self, request, pk=None):
         if not Recipe.objects.filter(pk=pk).exists():
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": f"Рецепт с идентификатором {pk} не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
         short_link = request.build_absolute_uri(
             reverse("recipe-short-link-redirect", args=[pk])
         )

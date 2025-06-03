@@ -3,16 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MinValueValidator
 from django.db import models
-import re
-from django.core.exceptions import ValidationError
-
-
-def validate_username(value):
-    if not re.match(r'^[\w.@+-]+$', value):
-        raise ValidationError(
-            'Имя пользователя содержит недопустимые символы'
-        )
-    return value
 
 
 class User(AbstractUser):
@@ -58,7 +48,6 @@ class Subscription(models.Model):
         User,
         verbose_name='Автор',
         on_delete=models.CASCADE,
-        related_name='author',
     )
     subscriber = models.ForeignKey(
         User,
@@ -70,6 +59,7 @@ class Subscription(models.Model):
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
+        default_related_name = 'authors'
         constraints = [
             models.UniqueConstraint(
                 fields=['author', 'subscriber'],
@@ -144,13 +134,11 @@ class IngredientRecipe(models.Model):
         Ingredient,
         on_delete=models.CASCADE,
         verbose_name='Продукт',
-        related_name='ingredient_recipes'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         verbose_name='Рецепт',
-        related_name='recipe_ingredients'
     )
     amount = models.PositiveSmallIntegerField(
         'Количество',
@@ -160,6 +148,7 @@ class IngredientRecipe(models.Model):
     class Meta:
         verbose_name = 'Продукт в рецепте'
         verbose_name_plural = 'Продукты в рецептах'
+        default_related_name = 'recipe_ingredients'
         constraints = [
             models.UniqueConstraint(
                 fields=['ingredient', 'recipe'],
@@ -200,26 +189,14 @@ class UserRecipeRelation(models.Model):
 
 
 class Favorite(UserRecipeRelation):
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='favorite_recipes',
-        verbose_name='Рецепт'
-    )
 
     class Meta(UserRecipeRelation.Meta):
         verbose_name = 'Избранный рецепт'
         verbose_name_plural = 'Избранные рецепты'
-        default_related_name = 'favorites'
+        default_related_name = 'favorite_recipes'
 
 
 class ShoppingCart(UserRecipeRelation):
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='shopping_carts',
-        verbose_name='Рецепт'
-    )
 
     class Meta(UserRecipeRelation.Meta):
         verbose_name = 'Корзина'
