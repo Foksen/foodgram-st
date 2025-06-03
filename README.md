@@ -27,12 +27,6 @@
 1. Клонировать репозиторий
 
 ```bash
-cd ~
-
-mkdir dev
-
-cd dev
-
 git clone https://github.com/Foksen/foodgram-st.git
 ```
 
@@ -80,6 +74,7 @@ docker-compose down
 - [Фронтенд](http://localhost/)
 - [API](http//localhost/api/)
 - [Админ-панель](http://localhost/admin/)
+- [Документация API](http://localhost/api/docs/)
 
 ## CI/CD с GitHub Actions
 
